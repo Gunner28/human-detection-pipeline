@@ -1,5 +1,7 @@
 # Human Detection Pipeline
 
+[![tests](https://github.com/Gunner28/human-detection-pipeline/actions/workflows/tests.yml/badge.svg)](https://github.com/Gunner28/human-detection-pipeline/actions/workflows/tests.yml)
+
 Detect people in video, follow each person across frames, and report where and
 when they appeared — measured against a public benchmark rather than asserted.
 
