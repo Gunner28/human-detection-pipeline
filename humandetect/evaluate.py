@@ -216,5 +216,11 @@ class CountReport:
 
 
 def load_ground_truth(path: str | Path) -> dict:
-    """Load a labelled set written by scripts/label_frames.py."""
+    """Load a hand-labelled set: outputs/ground_truth.json.
+
+    Kept for the count-level question MOT17 cannot answer — whether the
+    headcount on this project's own footage is right. See docs/FINDINGS.md
+    #5 for why that particular set is stamped unreliable, and #10 onward
+    for the benchmark that replaced it for measuring detection quality.
+    """
     return json.loads(Path(path).read_text(encoding="utf-8"))

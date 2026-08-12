@@ -20,6 +20,7 @@ path has no such constraint, which is a real reason to keep both.
 """
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Protocol
 
 import numpy as np
@@ -39,6 +40,7 @@ class DetectorBackend(Protocol):
         confidence_threshold: float = CONFIDENCE_THRESHOLD,
         people_only: bool = True,
         deduplicate: bool = True,
+        containment_threshold: float | None = None,
     ) -> list[Detection]: ...
 
 
@@ -56,12 +58,14 @@ class SSDBackend:
         confidence_threshold: float = CONFIDENCE_THRESHOLD,
         people_only: bool = True,
         deduplicate: bool = True,
+        containment_threshold: float | None = None,
     ) -> list[Detection]:
         return self._detector.detect(
             frame,
             confidence_threshold=confidence_threshold,
             people_only=people_only,
             deduplicate=deduplicate,
+            containment_threshold=containment_threshold,
         )
 
 
@@ -71,16 +75,35 @@ class YOLOBackend:
     YOLO applies its own non-maximum suppression internally and, unlike
     OpenCV's `dnn_DetectionModel`, that suppression actually works. The
     project's own `suppress()` still runs when `deduplicate=True` so both
-    backends are treated identically by the harness; on YOLO output it
-    almost never removes anything, which is itself a useful signal.
+    backends are treated identically by the harness.
+
+    It was long assumed that on YOLO output this removes almost nothing.
+    MOT17 disproved that: on MOT17-02 it removes 876 of 8,454 detections
+    (10.4%), and disabling it recovers 505 true positives — people who are
+    heavily contained by the person in front of them, not duplicate boxes.
+    Pass `containment_threshold` above 1.0 to switch the containment half
+    of the rule off and measure the difference yourself.
     """
 
     name = "yolov8n"
 
-    def __init__(self, weights: str = "yolov8n.pt") -> None:
+    def __init__(self, weights: str = "yolov8n.pt", imgsz: int = 640) -> None:
         from ultralytics import YOLO  # imported lazily: heavy, and optional
 
-        self.model = YOLO(weights)
+        from .config import MODELS_DIR
+
+        # Keep downloaded weights in models/ with everything else rather
+        # than wherever the process happened to be started from.
+        cached = MODELS_DIR / weights
+        if not cached.is_file() and "/" not in weights:
+            MODELS_DIR.mkdir(parents=True, exist_ok=True)
+            YOLO(weights)  # downloads to cwd
+            fetched = Path.cwd() / weights
+            if fetched.is_file():
+                fetched.replace(cached)
+
+        self.model = YOLO(str(cached) if cached.is_file() else weights)
+        self.imgsz = imgsz
         self.name = weights.replace(".pt", "")
 
     def detect(
@@ -89,10 +112,17 @@ class YOLOBackend:
         confidence_threshold: float = CONFIDENCE_THRESHOLD,
         people_only: bool = True,
         deduplicate: bool = True,
+        containment_threshold: float | None = None,
     ) -> list[Detection]:
+        # imgsz is the size the frame is letterboxed to before inference,
+        # not the size it is reported at — boxes come back in original
+        # frame coordinates either way. It matters because a pedestrian 40
+        # pixels tall in 1080p is 13 pixels at imgsz=640 and 26 at 1280,
+        # and below roughly 16 pixels the detector stops finding them.
         results = self.model.predict(
             frame,
             conf=confidence_threshold,
+            imgsz=self.imgsz,
             verbose=False,
         )
 
@@ -118,14 +148,26 @@ class YOLOBackend:
                     )
                 )
 
-        return suppress(detections) if deduplicate else detections
+        if not deduplicate:
+            return detections
+        if containment_threshold is None:
+            return suppress(detections)
+        return suppress(detections, containment_threshold=containment_threshold)
 
 
-def load_backend(name: str) -> DetectorBackend:
-    """Build a backend by name: 'ssd' or 'yolo' (optionally 'yolo:yolov8s.pt')."""
+def load_backend(name: str, imgsz: int = 640) -> DetectorBackend:
+    """Build a backend by name.
+
+        ssd                     SSD MobileNet v3, fixed 320x320 input
+        yolo                    yolov8n at the given imgsz
+        yolo:yolov8s.pt         any ultralytics weights, downloaded on demand
+
+    `imgsz` is ignored by the SSD backend, whose input size is baked into
+    the frozen graph.
+    """
     if name == "ssd":
         return SSDBackend()
     if name.startswith("yolo"):
         _, _, weights = name.partition(":")
-        return YOLOBackend(weights or "yolov8n.pt")
-    raise ValueError(f"Unknown backend: {name!r}. Use 'ssd' or 'yolo'.")
+        return YOLOBackend(weights or "yolov8n.pt", imgsz=imgsz)
+    raise ValueError(f"Unknown backend: {name!r}. Use 'ssd' or 'yolo[:weights]'.")

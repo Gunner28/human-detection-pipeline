@@ -201,12 +201,20 @@ class PersonDetector:
         confidence_threshold: float = CONFIDENCE_THRESHOLD,
         people_only: bool = True,
         deduplicate: bool = True,
+        containment_threshold: float | None = None,
     ) -> list[Detection]:
         """Detect objects in a single frame.
 
         Duplicate boxes are removed by `suppress()` rather than by OpenCV's
         own `nmsThreshold`, which does nothing here (see that function).
         Pass `deduplicate=False` to see the raw model output.
+
+        `containment_threshold` overrides the configured value for this call
+        only. It is a parameter rather than a module constant because
+        experiments need to vary it: reassigning the constant and reloading
+        the module does not reach callers that already imported `suppress`,
+        so the toggle silently does nothing and the run looks like evidence
+        of no effect.
         """
         class_ids, confidences, boxes = self.model.detect(
             frame,
@@ -235,7 +243,11 @@ class PersonDetector:
                     box=(x, y, w, h),
                 )
             )
-        return suppress(detections) if deduplicate else detections
+        if not deduplicate:
+            return detections
+        if containment_threshold is None:
+            return suppress(detections)
+        return suppress(detections, containment_threshold=containment_threshold)
 
 
 def draw(

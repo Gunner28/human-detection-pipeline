@@ -410,3 +410,213 @@ real and the true count is known by observation.
 CPU only, Apple Silicon, 854x480 input. The difference is mostly the video
 encode and the second detection pass in the Phase 1 verification script,
 not the tracker, which is cheap.
+
+---
+
+## 10. MOT17: replacing hand-labelled ground truth
+
+**Date:** 2026-08-12 · **Status:** measured
+
+Findings #4 and #5 both hit the same ceiling: a few hundred frames labelled
+by one annotator, with no way to compare the result against anyone else's.
+Finding #2 recorded a unique-person count ranging from 95 to 483 across
+tracker parameters, with no basis for choosing between them.
+
+MOT17 removes that ceiling. Downloaded 5.6 GB from motchallenge.net and
+verified with `scripts/verify_mot17.py`:
+
+| | |
+|---|---|
+| Train scenes | 7 (21 folders = 7 scenes x 3 public detectors) |
+| Frames | 5,316 |
+| Ground-truth rows | 204,701 |
+| Evaluated pedestrian boxes | 112,297 |
+| Distinct identities | 546 |
+
+Two properties of the dataset are easy to get wrong and both change the
+number reported:
+
+**The 21 train folders are 7 videos.** Frames and ground truth are
+identical across the three detector copies. Averaging over 21 triple-counts
+7 videos. `mot17.verify()` asserts the copies agree, which is what
+justifies scoring only the 7.
+
+**45.1% of ground-truth rows are not scored.** 92,404 of 204,701 are
+ignore regions — occluders, bicycles, cars, static persons, distractors,
+reflections. A detection landing on one counts as neither hit nor false
+positive. Skipping that filter inflates false positives against objects the
+benchmark deliberately declined to score.
+
+Metrics come from TrackEval, pinned at commit `12c8791`. It is unmaintained
+against NumPy 2: 81 uses of `np.float`, `np.int` and `np.bool`, all removed
+in 2.0, so every evaluation died on `AttributeError` until patched.
+`scripts/setup_trackeval.sh` applies the substitution and asserts none
+remain.
+
+---
+
+## 11. The baseline was a precision problem, not a recall problem
+
+**Date:** 2026-08-12 · **Status:** measured, hypothesis disproved
+
+Predicted that input resolution was the dominant limitation and would show
+up as recall. It was not, and it did not.
+
+MOT17-02, tracker and all other settings identical:
+
+| run | HOTA | DetA | AssA | IDF1 | MOTA | TP | FN | FP | IDSW |
+|---|---|---|---|---|---|---|---|---|---|
+| SSD, 320 | 11.21 | 11.06 | 11.54 | 11.60 | −2.89 | 2743 | 15838 | 3177 | 103 |
+| YOLOv8n, 640 | 26.67 | 14.32 | 49.72 | 24.60 | 16.37 | 3143 | 15438 | **78** | 24 |
+| YOLOv8n, 1280 | 28.57 | 19.33 | 42.42 | 29.00 | 22.19 | 4293 | 14288 | 122 | 47 |
+
+From SSD-320 to YOLO-640, recall moves 14.8% to 16.9% — barely. False
+positives fall from 3,177 to 78, a fortyfold reduction, and that is what
+takes MOTA from negative to positive. The baseline's problem was that over
+half of what it emitted was not a person. MOTP rising 69.5 to 83.8 says the
+same thing from the other side: the boxes it did produce were poorly placed,
+and a box near the IoU 0.5 boundary is charged as both a false positive and
+a false negative.
+
+Resolution is real but secondary: 640 to 1280 is where recall improves
+(16.9% to 23.1%), at roughly half the throughput.
+
+**AssA falls as the detector improves** — 49.72 at 640, 42.42 at 1280. Not
+noise: more detections means more simultaneous candidates and more chances
+to confuse two of them, so ID switches rise 24 to 47. HOTA still climbs
+because DetA gains more than AssA loses. A single MOTA figure would have
+hidden the trade entirely.
+
+---
+
+## 12. Containment suppression deletes real people in crowds
+
+**Date:** 2026-08-12 · **Status:** measured, defect confirmed, not fixed
+
+Finding #1 established that suppression must score containment as well as
+IoU, because a nested duplicate can sit 95% inside a larger box at only
+0.28 IoU. That was validated on `samples/manbenz.png` — one person, one car.
+
+On MOT17 the same rule is wrong. A person standing behind another is
+*genuinely* 70%+ contained by them, and the rule cannot distinguish that
+from a duplicate box.
+
+MOT17-02, YOLOv8n at 1280, confidence 0.25:
+
+| | detections | HOTA | DetA | AssA | TP | FP |
+|---|---|---|---|---|---|---|
+| containment on | 7,578 | **30.34** | 25.66 | 36.27 | 6040 | 734 |
+| containment off | 8,454 | 28.54 | **27.72** | 29.91 | **6545** | 1023 |
+
+The rule removes 876 of 8,454 detections (10.4%), and disabling it recovers
+505 true positives. This contradicts the previous README claim that on YOLO
+output the rule "almost never removes anything".
+
+**It is still enabled by default, because disabling it lowers HOTA.** The
+recovered detections are heavily occluded people who appear and vanish, so
+the tracker fragments on them: AssA falls further than DetA gains. MOTA
+alone would have called this a win and shipped a regression.
+
+The honest fix is a rule that distinguishes a duplicate from an occluded
+neighbour — comparing aspect ratio and size, or skipping containment
+entirely on backends that already apply working NMS. Not written yet.
+
+Note on method: the first attempt to measure this toggled a module constant
+and called `importlib.reload()`. That silently did nothing, because
+`backends.py` binds `suppress` at import time and keeps the old reference —
+both runs produced byte-identical scores, which reads as evidence of no
+effect. `containment_threshold` is now a parameter threaded through
+`BenchmarkConfig`, and the difference is real.
+
+---
+
+## 13. Inference size must be capped at native resolution
+
+**Date:** 2026-08-12 · **Status:** measured, fixed
+
+Running every sequence at `imgsz=1280` upscales the one 640x480 sequence
+past its native size. This invents no detail and plenty of false positives.
+
+MOT17-05, YOLOv8n, confidence 0.25, input size the only variable:
+
+| imgsz | HOTA | MOTA | FP |
+|---|---|---|---|
+| 1280 (upscaled) | 36.04 | 26.40 | 1546 |
+| 640 (native) | **42.90** | **48.97** | **673** |
+
+22.6 points of MOTA and 6.9 of HOTA, from one wrong default.
+
+`BenchmarkConfig.effective_imgsz()` now caps at each sequence's native
+resolution, rounded to the multiple of 32 YOLO expects. Found only because
+the per-sequence table showed MOT17-05 scoring *worse* than the SSD
+baseline it was supposed to beat — a combined figure would have buried it.
+
+**Result after the fix**, all 7 train scenes, YOLOv8n, confidence 0.25,
+imgsz capped at native:
+
+| | HOTA | DetA | AssA | IDF1 | MOTA | MOTP |
+|---|---|---|---|---|---|---|
+| SSD baseline | 15.62 | 13.41 | 18.94 | 15.38 | 3.47 | 71.35 |
+| YOLOv8n | **41.99** | 41.07 | 43.45 | **50.32** | **43.87** | 79.79 |
+
+Recall 52.8% (59,342 of 112,297), precision 86.8%, 16.8 fps on CPU.
+
+Largest remaining losses, both addressable with code already in the
+repository: recall at 52.8%, and MOT17-13 contributing 495 of 1,079 ID
+switches — 46% of the total from 10% of the data, on the fastest camera
+motion in the set, with `compensate=False` throughout.
+
+---
+
+## 14. Baseline notebook: what was changed, and what was not
+
+**Date:** 2026-08-12 · **Status:** verified, then made unverifiable by design
+
+`notebooks/baseline_pipeline.ipynb` presents the original detection
+notebook with a markdown explanation before each step. The code cells are
+the original ones. That claim was mechanically verified at the time of
+writing, against the original notebook as it stood before publication:
+
+    18 code cells
+    13 byte-identical to the original
+     5 edited (cells 3, 6, 11, 20, 22): 4 path rewrites, 10 defect fixes
+
+**Path rewrites (4).** The original hardcoded absolute paths on the machine
+it was written on, so it could not load the model anywhere else:
+
+    error: FAILED: fs.is_open(). Can't open ".../frozen_inference_graph.pb"
+
+Rewritten to resolve inside this repository. No logic touched.
+
+**Defect fixes (10).** Both capture loops were broken.
+
+*Video loop:* the "camera not opened" fallback assigned to `ccap`, so it
+opened a capture nothing read from and left `cap` closed; `raise IDError`
+names something that does not exist in Python, so the guard raised
+`NameError` rather than its message; and no `if not ret: break`, so at the
+end of a file `read()` returned `(False, None)` and `detect(None)` raised.
+The loop ran and drew boxes correctly, then always terminated by crashing —
+a traceback after the work is done reads as "finished".
+
+*Webcam loop:* the above, plus `cv2.videoCapture` (lowercase v),
+`confzthreshold=` (not a parameter `detect()` accepts), `cv2.waitkey`
+(lowercase k), and `confidece` (misspelled consistently, so it worked).
+
+Six defects in one cell is not carelessness. Python resolves attribute
+names when a line executes, not when it is defined, so `cv2.videoCapture`
+is a valid expression until evaluated. Nobody had a second camera, the loop
+body never ran, and the errors stayed invisible.
+
+After the fix, the video loop completes all 4,094 frames and exits cleanly;
+the webcam loop raises `IOError` when no camera is present, which is what
+it always intended to do.
+
+**Why this entry exists.** The check lived in a build script that read the
+original notebook out of git history. That notebook was removed from every
+commit before publication: it hardcoded absolute paths containing a
+personal home directory, and a public repository is a poor place for one.
+The check therefore cannot be re-run, and the script was deleted rather
+than left to fail against a file that is no longer there.
+
+This entry is the record. The pre-publication history, including the
+original notebook, is retained privately outside the repository.

@@ -1,10 +1,30 @@
+# Python 3.10 or newer.
+#
 # Core — detection runs entirely through OpenCV's DNN module, so no
 # TensorFlow runtime is needed despite the model being a TF frozen graph.
+# These two are enough for `python cli.py` and for the test suite.
 opencv-python>=4.8.0
 numpy>=1.24.0
 
 # Use opencv-python-headless instead on a server with no display:
 #   pip uninstall opencv-python && pip install opencv-python-headless
 
+# Notebooks and the diagnostic scripts.
+matplotlib>=3.7.0
+
+# Benchmark. scipy is TrackEval's dependency, not this project's — it is
+# needed by the Hungarian assignment behind IDF1 and HOTA. Without it,
+# scripts/benchmark_mot17.py fails at import.
+scipy>=1.11.0
+
 # Tests
 pytest>=8.0.0
+
+# --- Optional -------------------------------------------------------------
+# The YOLO backend, and therefore the headline benchmark result. Left
+# commented out deliberately: ultralytics is AGPL-3.0, which is fine for a
+# public repository but is a real constraint if this code is ever vendored
+# into closed-source software. The SSD path has no such restriction and is
+# the default in cli.py.
+#
+#   pip install ultralytics>=8.0.0
