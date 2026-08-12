@@ -1,0 +1,234 @@
+[
+  {
+    "backend": "ssd-mobilenet-v3",
+    "ms_per_frame": 29.5,
+    "min_height": 60,
+    "confidence": 0.3,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 19,
+    "ratio": 1.267,
+    "mean_absolute_error": 2.0,
+    "bias": 1.333,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 9
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 4
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 6
+      }
+    ]
+  },
+  {
+    "backend": "ssd-mobilenet-v3",
+    "ms_per_frame": 30.1,
+    "min_height": 60,
+    "confidence": 0.4,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 18,
+    "ratio": 1.2,
+    "mean_absolute_error": 1.667,
+    "bias": 1.0,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 9
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 4
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 5
+      }
+    ]
+  },
+  {
+    "backend": "ssd-mobilenet-v3",
+    "ms_per_frame": 29.6,
+    "min_height": 60,
+    "confidence": 0.5,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 12,
+    "ratio": 0.8,
+    "mean_absolute_error": 3.0,
+    "bias": -1.0,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 8
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 1
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 3
+      }
+    ]
+  },
+  {
+    "backend": "ssd-mobilenet-v3",
+    "ms_per_frame": 30.0,
+    "min_height": 60,
+    "confidence": 0.6,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 7,
+    "ratio": 0.467,
+    "mean_absolute_error": 2.667,
+    "bias": -2.667,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 4
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 1
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 2
+      }
+    ]
+  },
+  {
+    "backend": "yolov8n",
+    "ms_per_frame": 25.0,
+    "min_height": 60,
+    "confidence": 0.3,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 19,
+    "ratio": 1.267,
+    "mean_absolute_error": 2.667,
+    "bias": 1.333,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 9
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 3
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 7
+      }
+    ]
+  },
+  {
+    "backend": "yolov8n",
+    "ms_per_frame": 24.9,
+    "min_height": 60,
+    "confidence": 0.4,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 18,
+    "ratio": 1.2,
+    "mean_absolute_error": 2.333,
+    "bias": 1.0,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 9
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 3
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 6
+      }
+    ]
+  },
+  {
+    "backend": "yolov8n",
+    "ms_per_frame": 24.6,
+    "min_height": 60,
+    "confidence": 0.5,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 14,
+    "ratio": 0.933,
+    "mean_absolute_error": 3.0,
+    "bias": -0.333,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 9
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 1
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 4
+      }
+    ]
+  },
+  {
+    "backend": "yolov8n",
+    "ms_per_frame": 24.4,
+    "min_height": 60,
+    "confidence": 0.6,
+    "frames": 3,
+    "labelled_people": 15,
+    "detected_people": 10,
+    "ratio": 0.667,
+    "mean_absolute_error": 3.0,
+    "bias": -1.667,
+    "per_frame": [
+      {
+        "frame": 1884,
+        "actual": 5,
+        "detected": 7
+      },
+      {
+        "frame": 2512,
+        "actual": 5,
+        "detected": 1
+      },
+      {
+        "frame": 3140,
+        "actual": 5,
+        "detected": 2
+      }
+    ]
+  }
+]

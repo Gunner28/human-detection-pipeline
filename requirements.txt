@@ -1,0 +1,10 @@
+# Core — detection runs entirely through OpenCV's DNN module, so no
+# TensorFlow runtime is needed despite the model being a TF frozen graph.
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Use opencv-python-headless instead on a server with no display:
+#   pip uninstall opencv-python && pip install opencv-python-headless
+
+# Tests
+pytest>=8.0.0

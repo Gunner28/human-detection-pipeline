@@ -1,0 +1,28 @@
+# Model weights — fetched by scripts/download_models.sh, or auto-downloaded
+models/frozen_inference_graph.pb
+models/*.tar.gz
+*.pt
+*.onnx
+
+# Sample footage and rendered output — large binaries, not source
+samples/*.mp4
+samples/*.mov
+outputs/*.mp4
+outputs/*.avi
+outputs/*.pkl
+
+# Working images from evaluation runs. The two figures referenced by the
+# README are force-added; everything else here is scratch.
+outputs/eval_frames/
+outputs/label_frames/
+
+# Python
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+
+# macOS
+.DS_Store

@@ -1,0 +1,20 @@
+{
+  "video": "samples/Samplevideo2.mp4",
+  "annotator": "single annotator, visual count",
+  "protocol": "count-level; only people whose bounding-box height is at least min_height pixels in the source 854x480 resolution are counted; a 60px reference bar was rendered into each frame as a yardstick",
+  "min_height": 60,
+  "uncertainty": "+/-1 person per frame on borderline cases",
+  "frames": {
+    "1884": 5,
+    "2512": 5,
+    "3140": 5
+  },
+  "status": "UNRELIABLE - see docs/FINDINGS.md finding #5",
+  "known_issues": [
+    "Frame 1884 labelled 5; two independent detectors found 9 and visual review confirmed ~8-9. Label biased low.",
+    "Single annotator, no calibration pass, borderline cases resolved conservatively in one direction.",
+    "Count-level only; does not verify box placement.",
+    "N=3 frames is too small to separate models."
+  ],
+  "do_not_use_for": "any published accuracy claim, or ranking detector backends"
+}

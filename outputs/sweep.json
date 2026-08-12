@@ -1,0 +1,122 @@
+[
+  {
+    "max_missing": 5,
+    "min_frames": 5,
+    "unique": 483,
+    "mean_dwell": 1.41,
+    "median_dwell": 0.7,
+    "peak": 18
+  },
+  {
+    "max_missing": 5,
+    "min_frames": 15,
+    "unique": 295,
+    "mean_dwell": 2.12,
+    "median_dwell": 1.43,
+    "peak": 17
+  },
+  {
+    "max_missing": 5,
+    "min_frames": 30,
+    "unique": 194,
+    "mean_dwell": 2.87,
+    "median_dwell": 2.1,
+    "peak": 16
+  },
+  {
+    "max_missing": 15,
+    "min_frames": 5,
+    "unique": 342,
+    "mean_dwell": 2.01,
+    "median_dwell": 1.0,
+    "peak": 18
+  },
+  {
+    "max_missing": 15,
+    "min_frames": 15,
+    "unique": 241,
+    "mean_dwell": 2.73,
+    "median_dwell": 1.73,
+    "peak": 18
+  },
+  {
+    "max_missing": 15,
+    "min_frames": 30,
+    "unique": 173,
+    "mean_dwell": 3.53,
+    "median_dwell": 2.47,
+    "peak": 18
+  },
+  {
+    "max_missing": 30,
+    "min_frames": 5,
+    "unique": 234,
+    "mean_dwell": 2.95,
+    "median_dwell": 1.52,
+    "peak": 21
+  },
+  {
+    "max_missing": 30,
+    "min_frames": 15,
+    "unique": 184,
+    "mean_dwell": 3.66,
+    "median_dwell": 2.22,
+    "peak": 21
+  },
+  {
+    "max_missing": 30,
+    "min_frames": 30,
+    "unique": 142,
+    "mean_dwell": 4.53,
+    "median_dwell": 3.03,
+    "peak": 20
+  },
+  {
+    "max_missing": 60,
+    "min_frames": 5,
+    "unique": 171,
+    "mean_dwell": 4.04,
+    "median_dwell": 1.7,
+    "peak": 25
+  },
+  {
+    "max_missing": 60,
+    "min_frames": 15,
+    "unique": 135,
+    "mean_dwell": 5.03,
+    "median_dwell": 2.83,
+    "peak": 25
+  },
+  {
+    "max_missing": 60,
+    "min_frames": 30,
+    "unique": 108,
+    "mean_dwell": 6.11,
+    "median_dwell": 3.67,
+    "peak": 24
+  },
+  {
+    "max_missing": 90,
+    "min_frames": 5,
+    "unique": 145,
+    "mean_dwell": 4.76,
+    "median_dwell": 2.2,
+    "peak": 25
+  },
+  {
+    "max_missing": 90,
+    "min_frames": 15,
+    "unique": 112,
+    "mean_dwell": 6.07,
+    "median_dwell": 3.52,
+    "peak": 25
+  },
+  {
+    "max_missing": 90,
+    "min_frames": 30,
+    "unique": 95,
+    "mean_dwell": 7.03,
+    "median_dwell": 4.73,
+    "peak": 24
+  }
+]
