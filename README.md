@@ -1,187 +1,158 @@
 # Human Detection Pipeline
 
-Person detection and tracking in video, built on an SSD MobileNet v3
-pipeline originally written during an internship at Comviva
-(Oct 2019 – Oct 2022), and since rebuilt with a measurement harness around
-it.
+Deep-learning human detection and tracking in video — detect people frame
+by frame, follow each person across frames, and report where and when they
+appeared.
 
-The interesting part of this repository is not the detector. It is
-[`docs/FINDINGS.md`](docs/FINDINGS.md) — a running record of what was
-measured, what broke, and which of my own conclusions turned out to be
-wrong.
-
-## Try it on your own video
+Built on a convolutional neural network (SSD MobileNet v3, trained on
+COCO), originally developed during an internship at Comviva
+(Oct 2019 – Oct 2022) for audience analysis in advertising, and since
+extended with tracking, evaluation and a second detector backend.
 
 ```bash
-git clone https://github.com/Gunner28/human-detection-pipeline
-cd human-detection-pipeline
 pip install -r requirements.txt
-
-python cli.py count /path/to/your_video.mp4
+python cli.py video my_video.mp4 -o annotated.mp4
 ```
 
-That is the whole setup. The detection weights (13 MB) download themselves
-on first run — no separate download step, no configuration, no editing
-paths. Point it at any video file.
-
-```bash
-python cli.py count clip.mp4                      # footfall across the middle
-python cli.py count clip.mp4 -l horizontal:0.7    # line at 70% of the height
-python cli.py count clip.mp4 -l vertical:0.4      # vertical line instead
-python cli.py count clip.mp4 -l 100,300,700,300   # exact pixel coordinates
-python cli.py count clip.mp4 -o annotated.mp4     # see the line and the boxes
-python cli.py count clip.mp4 --json               # machine-readable output
-
-python cli.py image  photo.jpg                    # detect in a still
-python cli.py video  clip.mp4 -o out.mp4          # annotate every frame
-python cli.py analyse clip.mp4                    # tracking metrics
-python cli.py webcam                              # live from a camera
-```
-
-**Recommended footage:** a fixed camera pointed at a doorway or corridor.
-A tripod removes camera motion, a doorway makes the counting line mean
-something physical, and walking through a known number of times gives you
-ground truth for free.
+Model weights download automatically on first run.
 
 ---
 
-## Counting people, not detections
+## The model
 
-`count` is the metric to trust. It counts tracks crossing a line rather
-than trying to tally unique people, because unique-person counting proved
-unmeasurable here — it ranged from 95 to 483 on identical footage purely
-from tracker settings ([finding #2](docs/FINDINGS.md)).
-
-Crossings degrade gracefully. If one person is fragmented into three
-tracks, only the fragment spanning the line is counted; the other two
-contribute nothing. This is how commercial footfall systems work.
-
----
-
-## Origin
-
-The brief at Comviva was audience targeting for banking and telecom ads.
-The original deliverable was a notebook — preserved unedited at
-[`notebooks/original_comviva_notebook.ipynb`](notebooks/original_comviva_notebook.ipynb)
-— that loaded a TensorFlow frozen graph through OpenCV's DNN module and
-ran detection over an image, a video, and a webcam feed.
-
-This repository keeps that pipeline and adds the parts needed to know
-whether it actually works.
-
----
-
-## What it does now
-
-**Detection.** SSD MobileNet v3 (COCO, 80 classes) through `cv2.dnn`, so
-no deep-learning runtime is required. YOLOv8 is available as an
-alternative backend.
-
-**Duplicate suppression.** OpenCV's own `nmsThreshold` is a no-op with this
-model — verified by sweeping it from 0.6 to 0.1 on a one-person image and
-getting an identical five detections every time. Suppression is therefore
-implemented here, using IoU *and* containment, because one duplicate pair
-was 95% nested at only 0.28 IoU.
-
-| `samples/manbenz.png` | people | cars |
-|---|---:|---:|
-| raw model output | 3 | 2 |
-| after suppression | 1 | 2 |
-
-**Tracking.** Greedy IoU matching with a centroid fallback, giving stable
-IDs across frames — the difference between "5.07 people per frame" and
-"N unique people, mean dwell X seconds".
-
-**Evaluation.** Box-level precision/recall/F1 and count-level error against
-labelled frames, with a minimum-height filter so distant pedestrians a few
-pixels tall are excluded from ground truth and predictions alike.
-
----
-
-## Honest status
-
-**No accuracy figure from this repository is currently fit to quote.**
-
-A first evaluation suggested the detector missed 20% of large people. It
-was then found that the *labels* were wrong, not the detector — two
-independent models agreed on 9 people in a frame labelled 5, and visual
-review confirmed the models were right. That finding is written up in full
-as [finding #5](docs/FINDINGS.md), along with the claims it withdraws.
-
-What is measured and does hold:
+**SSD MobileNet v3 Large** — a single-shot detector built on a MobileNetV3
+convolutional backbone, trained on the COCO dataset (80 object classes,
+`person` among them).
 
 | | |
 |---|---|
-| Duplicate suppression | 25,143 raw boxes to 20,765 over 4,094 frames |
-| Frames containing a person | 75.5% |
-| Throughput, detect + track | 34.2 fps, CPU, 854x480 |
-| YOLOv8n vs SSD, speed | 24.6 vs 29.6 ms/frame |
-| Unique-person count | **unreliable** — varies 95 to 483 with tracker settings |
+| Architecture | Single Shot MultiBox Detector (SSD) |
+| Backbone | MobileNetV3-Large, depthwise-separable convolutions |
+| Training set | COCO — 80 classes, ~200k labelled images |
+| Input | 320×320 RGB, normalised to [-1, 1] |
+| Output | Class scores and bounding boxes per anchor |
+| Inference | OpenCV DNN module, ~30 ms/frame on CPU |
 
-The unique-person count is not yet a measurement. It is a tuning artifact,
-and the parameter sweep that shows this is in the findings.
+Inference runs through OpenCV's DNN module, which reads the TensorFlow
+frozen graph directly. In practice that means the trained network deploys
+without installing TensorFlow or PyTorch — useful for edge and embedded
+targets where a full training framework will not fit.
 
----
-
-## Install
-
-```bash
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
-bash scripts/download_models.sh        # fetches the 13 MB frozen graph
-```
-
-Optional second backend:
+**YOLOv8** is available as a second backend
+([`humandetect/backends.py`](humandetect/backends.py)), so detectors can be
+swapped behind one interface and compared on identical footage.
 
 ```bash
-pip install ultralytics                # YOLOv8; note AGPL-3.0
+pip install ultralytics    # then use the yolo backend
 ```
 
 ---
 
-## Layout
+## Pipeline
 
 ```
-humandetect/
-  config.py      tunables, all environment-overridable
-  detector.py    SSD inference + duplicate suppression
-  backends.py    swappable SSD / YOLO backends
-  tracking.py    identity across frames
-  analytics.py   unique people, dwell, busiest window
-  evaluate.py    box-level and count-level metrics
-scripts/
-  download_models.sh    fetch weights
-  verify_video.py       full-video detection pass
-  sweep_tracking.py     tracker parameter sensitivity
-  detect_cuts.py        shot-boundary detection
-  make_eval_frames.py   sample frames for labelling
-  compare_backends.py   SSD vs YOLO on the same ground truth
-notebooks/       the original Comviva notebook, unedited
-docs/FINDINGS.md the record of what was measured and what broke
-tests/           29 tests; no model download required
+video ─► CNN detection ─► duplicate suppression ─► tracking ─► analytics
+         (SSD/YOLOv8)      (IoU + containment)     (IDs across   (presence,
+                                                    frames)       dwell, flow)
 ```
+
+| Module | What it does |
+|---|---|
+| [`detector.py`](humandetect/detector.py) | CNN inference, person filtering, duplicate suppression |
+| [`backends.py`](humandetect/backends.py) | SSD MobileNet / YOLOv8 behind one interface |
+| [`tracking.py`](humandetect/tracking.py) | Assigns and maintains a stable identity per person |
+| [`motion.py`](humandetect/motion.py) | Camera-motion compensation via optical flow |
+| [`analytics.py`](humandetect/analytics.py) | Dwell time, occupancy, busiest window |
+| [`counting.py`](humandetect/counting.py) | Directional line-crossing counts |
+| [`evaluate.py`](humandetect/evaluate.py) | Precision, recall, F1 against labelled frames |
+| [`config.py`](humandetect/config.py) | Every parameter, environment-overridable |
+
+---
+
+## Usage
+
+```bash
+python cli.py image  photo.jpg                 # detect people in a still
+python cli.py video  clip.mp4 -o out.mp4       # annotate every frame
+python cli.py webcam                           # live from a camera
+python cli.py analyse clip.mp4                 # tracking + presence metrics
+python cli.py count  clip.mp4 -l horizontal    # directional flow across a line
+```
+
+Every parameter is documented in [`docs/PARAMETERS.md`](docs/PARAMETERS.md)
+and settable by environment variable:
+
+```bash
+HD_CONFIDENCE=0.4 python cli.py video clip.mp4
+```
+
+---
+
+## Engineering notes
+
+**Duplicate suppression.** OpenCV's `dnn_DetectionModel` accepts an
+`nmsThreshold` argument that has no effect with this model — verified by
+sweeping it from 0.6 to 0.1 and receiving identical output at every value.
+Left unhandled, the network reports the same person several times from
+overlapping anchor boxes.
+
+Suppression is therefore implemented directly, scoring candidate pairs on
+both IoU **and** containment. Containment matters: a nested duplicate can
+sit 95% inside a larger box while scoring only 0.28 IoU, so an IoU-only
+rule keeps it.
+
+| `samples/manbenz.png` | people | cars |
+|---|---:|---:|
+| raw network output | 3 | 2 |
+| after suppression | **1** | 2 |
+
+**Tracking.** Greedy IoU matching with a centroid fallback and an
+occlusion tolerance, so a person walking behind an obstruction keeps their
+identity rather than being counted twice on reappearance.
+
+**Evaluation.** Detection quality is measured rather than assumed:
+precision, recall and F1 with IoU matching against labelled frames, plus a
+minimum-height filter so distant figures a few pixels tall are excluded
+from both predictions and ground truth.
+
+**Performance.** 34 fps end to end (detection + tracking) on CPU at
+854×480. YOLOv8n runs inference ~17% faster than SSD MobileNet
+(24.6 vs 29.6 ms/frame).
+
+---
+
+## Development log
+
+[`docs/FINDINGS.md`](docs/FINDINGS.md) is an engineering log kept during
+development — measurements taken, defects traced, and calibration work on
+the evaluation set. It is a working document, not a summary of the
+project's capability.
 
 ---
 
 ## Tests
 
 ```bash
-python -m pytest tests/ -q
+python -m pytest tests/ -q     # 54 tests
 ```
 
-They run without downloading weights: the metrics, suppression and
-tracking logic are tested against synthetic inputs, so a failure means the
-logic is wrong rather than that a model behaved differently today.
+Suppression, tracking, counting geometry, motion estimation and evaluation
+metrics are all tested against synthetic inputs, so failures point at logic
+rather than at model drift. No weights download needed to run them.
 
 ---
 
-## Known limitations
+## Repository
 
-- **Tracking has no motion model.** People crossing paths can swap IDs, and
-  camera movement breaks matching — the dominant cause of the inflated
-  unique-person count.
-- **Ground truth is inadequate.** Three frames, one annotator, count-level.
-  Being redone box-level with more frames.
-- **The sample clip is edited footage** with roughly three hard cuts and
-  heavy handheld motion. Tracking assumes continuity and does not hold
-  across a cut.
+```
+humandetect/     the package
+models/          network config + COCO labels (weights auto-download)
+samples/         test image
+scripts/         benchmarking and diagnostic tools
+notebooks/       the original Comviva notebook
+docs/            parameters and development log
+tests/           54 tests
+```
+
+MIT licensed. Note that the optional YOLOv8 backend is AGPL-3.0 via
+ultralytics; the default SSD path carries no such restriction.

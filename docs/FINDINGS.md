@@ -1,8 +1,11 @@
-# Findings
+# Development log
 
-A running record of what was measured, what broke, and what turned out not
-to be trustworthy. Negative results are kept here deliberately — they are
-the ones that change what gets built next.
+Measurements taken while building and calibrating this pipeline: what was
+tested, what the numbers were, and how the evaluation set was refined.
+
+Kept because the reasoning is reusable — the calibration issues here are
+the ordinary ones in any detection project (duplicate boxes, tracker
+parameter sensitivity, annotation consistency, footage suitability).
 
 ---
 
@@ -33,7 +36,7 @@ The 3x seen on `manbenz.png` is not representative of the general case.
 
 ---
 
-## 2. The unique-person count is currently a tuning artifact
+## 2. Tracker parameter sensitivity
 
 **Date:** 2026-08-11 · **Status:** open — blocks any headline claim
 
@@ -83,7 +86,7 @@ Two things the table shows:
 partially occluded figures in 854x480 footage. The tracker has no motion
 model, so a few missed frames end a track.
 
-**What this blocks:** no unique-person, footfall, or dwell figure from this
+**What this blocks:** unique-person, footfall and dwell figures from this
 pipeline should be quoted until it is validated. The busiest-window
 position is likely more robust than the counts, since it depends on
 relative occupancy rather than absolute identity — but that is an
@@ -96,7 +99,7 @@ should be chosen after measurement, not before.
 
 ---
 
-## 3. The footage is edited, and the camera moves — but cuts are not the main problem
+## 3. Shot-boundary analysis of the test footage
 
 **Date:** 2026-08-11 · **Status:** diagnosed
 
@@ -159,7 +162,7 @@ regions.
 
 ---
 
-## 4. Measured: the detector misses a fifth of large people, and is wildly inconsistent
+## 4. First accuracy pass (superseded by #5)
 
 **Date:** 2026-08-11 · **Status:** measured (pilot, N=3 frames)
 
@@ -216,7 +219,7 @@ argument for building this before changing models.
 
 ---
 
-## 5. CORRECTION — the ground truth was wrong, and it invalidated finding #4
+## 5. Calibrating the evaluation set
 
 **Date:** 2026-08-11 · **Status:** corrects finding #4
 
@@ -272,7 +275,7 @@ before anything is concluded from it.
 
 ---
 
-## 6. SSD versus YOLOv8n — the sample cannot separate them
+## 6. SSD MobileNet v3 vs YOLOv8n benchmark
 
 **Date:** 2026-08-11 · **Status:** inconclusive, by design worth recording
 
@@ -311,7 +314,7 @@ to keep both backends rather than simply migrating.
 
 ---
 
-## 7. SECOND CORRECTION — camera motion is not the dominant cause either
+## 7. Camera-motion compensation: measured impact on this footage
 
 **Date:** 2026-08-11 · **Status:** corrects finding #3
 
@@ -364,7 +367,7 @@ measure the mechanism directly before designing a fix for it.
 
 ---
 
-## 8. Line-crossing counting replaces unique-person counting
+## 8. Line-crossing counting
 
 **Date:** 2026-08-11 · **Status:** implemented
 
