@@ -269,6 +269,17 @@ comfortable.
 
 ---
 
+## Where this is going
+
+[`docs/ROADMAP.md`](docs/ROADMAP.md) sets out the intended application:
+audience-adaptive screens for telecom retail and retail banking, where the
+screen adapts to how many people are in front of it and how long they have
+been there — without identifying anyone. It states the stages, and equally
+what will never be claimed: no sales-lift figures without outcome data, no
+demographic inference, no individual recognition.
+
+Detection and tracking, benchmarked above, are Stage 0 of that plan.
+
 ## Development log
 
 [`docs/FINDINGS.md`](docs/FINDINGS.md) records measurements taken and defects
